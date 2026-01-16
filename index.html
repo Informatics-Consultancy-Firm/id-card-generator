@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Card Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { margin: 0; padding: 20px; background-color: #f0f4f8; font-family: 'Oswald', Arial, sans-serif; color: #000000; font-weight: 500; min-height: 100vh; }
+        
+        .page-container { width: 100%; max-width: 1400px; margin: 0 auto; }
+        
+        .page-header { background-color: #004080; color: #ffffff; padding: 25px 30px; text-align: center; margin-bottom: 15px; border-radius: 8px 8px 0 0; }
+        .logo-row { display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 15px; }
+        .logo-box { background: #ffffff; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 24px; color: #004080; width: 80px; height: 80px; }
+        .page-header h3 { margin: 12px 0 5px; font-size: 14px; font-weight: 700; letter-spacing: 1px; }
+        .page-header .tagline { margin: 0; font-size: 10px; font-weight: 500; }
+        .page-header h1 { margin: 20px 0 10px; font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+        .page-header .subtitle { font-size: 14px; font-weight: 500; }
+        
+        .content-card { border: 4px double #004080; border-radius: 12px; padding: 12px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin-bottom: 15px; }
+        .content-inner { padding: 25px; }
+        
+        .main-layout { display: grid; grid-template-columns: 400px 1fr; gap: 30px; }
+        
+        .section-header { background-color: #004080; color: #ffffff; padding: 12px 16px; margin-bottom: 15px; border-radius: 6px; display: flex; align-items: center; gap: 12px; }
+        .section-icon { background: #ffffff; color: #004080; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+        .section-title { font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+        
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; color: #004080; font-size: 11px; font-weight: 700; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-input, .form-select { width: 100%; padding: 8px 10px; border: 2px solid #004080; border-radius: 6px; font-size: 12px; font-family: 'Oswald', Arial, sans-serif; font-weight: 500; color: #000; background: #ffffff; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: #0056b3; box-shadow: 0 0 0 3px rgba(0, 64, 128, 0.1); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .color-row { display: flex; gap: 10px; align-items: center; }
+        .color-picker { width: 36px; height: 32px; padding: 0; border: 2px solid #004080; border-radius: 6px; cursor: pointer; }
+        
+        .btn-primary { padding: 10px 16px; background: #004080; color: #ffffff; border: 2px solid #004080; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; font-family: 'Oswald', Arial, sans-serif; transition: all 0.3s; width: 100%; }
+        .btn-primary:hover { background: #0056b3; border-color: #0056b3; }
+        
+        .btn-gold { padding: 12px 20px; background: #ffc107; color: #000000; border: 2px solid #ffc107; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; text-transform: uppercase; font-family: 'Oswald', Arial, sans-serif; transition: all 0.3s; }
+        .btn-gold:hover { background: #e0a800; border-color: #e0a800; }
+        
+        .btn-secondary { padding: 10px 16px; background: #ffffff; color: #004080; border: 2px solid #004080; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; font-family: 'Oswald', Arial, sans-serif; transition: all 0.3s; }
+        .btn-secondary:hover { background: #004080; color: #ffffff; }
+        
+        .btn-success { padding: 10px 16px; background: #28a745; color: #ffffff; border: 2px solid #28a745; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; font-family: 'Oswald', Arial, sans-serif; transition: all 0.3s; }
+        .btn-success:hover { background: #218838; border-color: #218838; }
+        
+        /* Photo Section */
+        .photo-section { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .photo-preview { width: 120px; height: 150px; border: 3px dashed #004080; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8f9fa; position: relative; }
+        .photo-preview.has-photo { border-style: solid; }
+        .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-placeholder { text-align: center; color: #999; }
+        .photo-placeholder-icon { font-size: 40px; margin-bottom: 5px; }
+        .photo-placeholder-text { font-size: 10px; }
+        .photo-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .photo-buttons button { padding: 8px 12px; font-size: 10px; }
+        
+        /* Camera Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 20px; max-width: 500px; width: 90%; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-title { font-size: 16px; font-weight: 700; color: #004080; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #666; }
+        .camera-container { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
+        .camera-container video { width: 100%; display: block; }
+        .camera-container canvas { display: none; }
+        .camera-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        
+        /* Preview Section */
+        .preview-section { background: #f8f9fa; border: 2px solid #004080; border-radius: 8px; padding: 20px; position: sticky; top: 20px; }
+        .preview-title { font-size: 14px; font-weight: 700; color: #004080; margin-bottom: 15px; text-transform: uppercase; text-align: center; }
+        
+        .card-wrapper { display: flex; justify-content: center; padding: 20px; background: repeating-linear-gradient(45deg, #e9ecef, #e9ecef 10px, #f8f9fa 10px, #f8f9fa 20px); border-radius: 8px; }
+        
+        /* ID Card Base Styles */
+        .id-card {
+            width: 400px;
+            height: 250px;
+            position: relative;
+            font-family: 'Oswald', Arial, sans-serif;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        /* Template 1: Corporate */
+        .id-card.template-corporate {
+            background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+            border: 2px solid var(--primary-color);
+        }
+        .id-card.template-corporate .card-header {
+            background: var(--primary-color);
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .id-card.template-corporate .card-logo {
+            width: 35px;
+            height: 35px;
+            background: white;
+            border-radius: 6px;
+            padding: 3px;
+            flex-shrink: 0;
+        }
+        .id-card.template-corporate .card-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .id-card.template-corporate .card-org {
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .id-card.template-corporate .card-body {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 12px;
+            padding: 10px 15px;
+        }
+        .id-card.template-corporate .card-photo {
+            width: 100px;
+            height: 120px;
+            border: 2px solid var(--primary-color);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f0f0f0;
+        }
+        .id-card.template-corporate .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .id-card.template-corporate .card-info { display: flex; flex-direction: column; justify-content: center; }
+        .id-card.template-corporate .card-name { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 2px; }
+        .id-card.template-corporate .card-position { font-size: 10px; color: var(--primary-color); font-weight: 600; margin-bottom: 6px; }
+        .id-card.template-corporate .card-detail { font-size: 8px; color: #666; margin-bottom: 1px; }
+        .id-card.template-corporate .card-detail strong { color: #333; }
+        .id-card.template-corporate .card-id { font-size: 11px; font-weight: 700; color: var(--primary-color); margin-top: 4px; }
+        
+        /* Template 2: Modern */
+        .id-card.template-modern {
+            background: linear-gradient(135deg, var(--primary-color) 0%, color-mix(in srgb, var(--primary-color) 70%, #000) 100%);
+        }
+        .id-card.template-modern .card-accent {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 180px;
+            height: 180px;
+            background: var(--secondary-color);
+            opacity: 0.2;
+            border-radius: 0 0 0 100%;
+        }
+        .id-card.template-modern .card-content {
+            position: relative;
+            z-index: 1;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 15px;
+            height: 100%;
+        }
+        .id-card.template-modern .card-left { display: flex; flex-direction: column; align-items: center; }
+        .id-card.template-modern .card-photo {
+            width: 100px;
+            height: 120px;
+            border: 3px solid white;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f0f0f0;
+        }
+        .id-card.template-modern .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .id-card.template-modern .card-id { color: var(--secondary-color); font-size: 9px; font-weight: 700; margin-top: 8px; text-align: center; }
+        .id-card.template-modern .card-right { color: white; display: flex; flex-direction: column; justify-content: center; }
+        .id-card.template-modern .card-logo { width: 50px; height: 30px; margin-bottom: 6px; }
+        .id-card.template-modern .card-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .id-card.template-modern .card-name { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+        .id-card.template-modern .card-position { font-size: 10px; color: var(--secondary-color); font-weight: 600; margin-bottom: 6px; }
+        .id-card.template-modern .card-detail { font-size: 8px; opacity: 0.9; margin-bottom: 1px; }
+        
+        /* Template 3: Elegant */
+        .id-card.template-elegant {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .id-card.template-elegant .card-border {
+            position: absolute;
+            top: 5px; left: 5px; right: 5px; bottom: 5px;
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            opacity: 0.5;
+        }
+        .id-card.template-elegant .card-content {
+            position: relative;
+            z-index: 1;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 95px 1fr;
+            gap: 12px;
+            height: 100%;
+        }
+        .id-card.template-elegant .card-photo {
+            width: 95px;
+            height: 115px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f0f0f0;
+        }
+        .id-card.template-elegant .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .id-card.template-elegant .card-right { color: white; display: flex; flex-direction: column; }
+        .id-card.template-elegant .card-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .id-card.template-elegant .card-logo { width: 40px; height: 40px; }
+        .id-card.template-elegant .card-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .id-card.template-elegant .card-org { font-size: 8px; color: var(--secondary-color); letter-spacing: 1px; text-align: right; }
+        .id-card.template-elegant .card-name { font-size: 14px; font-weight: 700; color: var(--secondary-color); margin-bottom: 2px; }
+        .id-card.template-elegant .card-position { font-size: 9px; opacity: 0.8; margin-bottom: 6px; }
+        .id-card.template-elegant .card-detail { font-size: 7px; opacity: 0.7; margin-bottom: 1px; }
+        .id-card.template-elegant .card-id { font-size: 10px; font-weight: 700; color: var(--secondary-color); margin-top: auto; }
+        
+        /* Template 4: Minimal */
+        .id-card.template-minimal {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+        }
+        .id-card.template-minimal .card-stripe {
+            height: 6px;
+            background: var(--primary-color);
+        }
+        .id-card.template-minimal .card-content {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 90px 1fr;
+            gap: 12px;
+        }
+        .id-card.template-minimal .card-photo {
+            width: 90px;
+            height: 110px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+        .id-card.template-minimal .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .id-card.template-minimal .card-right { display: flex; flex-direction: column; }
+        .id-card.template-minimal .card-logo { width: 60px; height: 25px; margin-bottom: 6px; opacity: 0.8; }
+        .id-card.template-minimal .card-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .id-card.template-minimal .card-name { font-size: 14px; font-weight: 700; color: #333; }
+        .id-card.template-minimal .card-position { font-size: 9px; color: var(--primary-color); margin-bottom: 6px; }
+        .id-card.template-minimal .card-detail { font-size: 8px; color: #666; margin-bottom: 1px; }
+        .id-card.template-minimal .card-id { font-size: 9px; font-weight: 600; color: var(--primary-color); margin-top: auto; }
+        
+        /* Template 5: Gradient */
+        .id-card.template-gradient {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #764ba2 50%, var(--secondary-color) 100%);
+        }
+        .id-card.template-gradient .card-content {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 12px;
+            height: 100%;
+            color: white;
+        }
+        .id-card.template-gradient .card-photo {
+            width: 100px;
+            height: 120px;
+            border: 3px solid white;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f0f0f0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .id-card.template-gradient .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .id-card.template-gradient .card-right { display: flex; flex-direction: column; justify-content: center; }
+        .id-card.template-gradient .card-logo { width: 50px; height: 30px; margin-bottom: 6px; filter: brightness(0) invert(1); }
+        .id-card.template-gradient .card-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .id-card.template-gradient .card-name { font-size: 16px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .id-card.template-gradient .card-position { font-size: 10px; opacity: 0.95; margin-bottom: 6px; }
+        .id-card.template-gradient .card-detail { font-size: 8px; opacity: 0.9; margin-bottom: 1px; }
+        .id-card.template-gradient .card-id { font-size: 10px; font-weight: 700; margin-top: 6px; background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px; display: inline-block; }
+        
+        /* Template 6: Badge */
+        .id-card.template-badge {
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        .id-card.template-badge .card-top {
+            background: var(--primary-color);
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .id-card.template-badge .card-logo { width: 120px; height: 45px; }
+        .id-card.template-badge .card-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+        .id-card.template-badge .card-photo-wrapper {
+            position: absolute;
+            bottom: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .id-card.template-badge .card-photo {
+            width: 90px;
+            height: 90px;
+            border: 4px solid white;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f0f0f0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .id-card.template-badge .card-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .id-card.template-badge .card-body {
+            padding: 55px 15px 12px;
+            text-align: center;
+        }
+        .id-card.template-badge .card-name { font-size: 14px; font-weight: 700; color: #333; }
+        .id-card.template-badge .card-position { font-size: 10px; color: var(--primary-color); font-weight: 600; margin-bottom: 4px; }
+        .id-card.template-badge .card-detail { font-size: 8px; color: #666; margin-bottom: 2px; }
+        .id-card.template-badge .card-id { font-size: 9px; font-weight: 700; color: white; background: var(--primary-color); padding: 3px 12px; border-radius: 20px; display: inline-block; margin-top: 4px; }
+        
+        .template-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+        .template-btn { padding: 6px 10px; border: 2px solid #004080; background: white; color: #004080; border-radius: 6px; font-family: 'Oswald', Arial, sans-serif; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .template-btn:hover { background: #e7f3ff; }
+        .template-btn.active { background: #004080; color: white; }
+        
+        .download-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        
+        .notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 15px 30px; border-radius: 8px; font-weight: 600; z-index: 2000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .notification.success { background: #d4edda; color: #155724; border: 2px solid #28a745; display: block; }
+        .notification.error { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; display: block; }
+        
+        .page-footer { background-color: #004080; color: #ffffff; padding: 20px 30px; text-align: center; font-size: 13px; line-height: 1.7; font-weight: 500; border-radius: 0 0 8px 8px; }
+        .page-footer p { margin: 6px 0 0; font-size: 12px; }
+        
+        @media (max-width: 1200px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .preview-section { position: static; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="logo-row">
+                <div class="logo-box">ICF</div>
+            </div>
+            <h3>Informatics Consultancy Firm-Sierra Leone (ICF-SL)</h3>
+            <p class="tagline"><em>Driving Data-Driven Solutions for Health and Development</em></p>
+            <h1>ID CARD GENERATOR</h1>
+            <p class="subtitle">Create Professional ID Cards • Upload Photo or Use Camera</p>
+        </div>
+
+        <div class="content-card">
+            <div class="content-inner">
+                <div class="main-layout">
+                    <!-- Left Panel - Controls -->
+                    <div class="controls-panel">
+                        <div class="section-header">
+                            <span class="section-icon">1</span>
+                            <span class="section-title">PHOTO</span>
+                        </div>
+                        
+                        <div class="photo-section">
+                            <div class="photo-preview" id="photoPreview">
+                                <div class="photo-placeholder">
+                                    <div class="photo-placeholder-icon">👤</div>
+                                    <div class="photo-placeholder-text">No photo</div>
+                                </div>
+                            </div>
+                            <div class="photo-buttons">
+                                <input type="file" id="photoUpload" accept="image/*" onchange="handlePhotoUpload(event)" style="display: none;">
+                                <button class="btn-secondary" onclick="document.getElementById('photoUpload').click()">📤 Upload</button>
+                                <button class="btn-primary" onclick="openCamera()">📷 Camera</button>
+                                <button class="btn-secondary" onclick="clearPhoto()" style="background: #dc3545; color: white; border-color: #dc3545;">✕</button>
+                            </div>
+                        </div>
+                        
+                        <div class="section-header">
+                            <span class="section-icon">2</span>
+                            <span class="section-title">ORGANIZATION</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Organization Logo</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <div id="logoPreviewBox" style="width: 50px; height: 50px; border: 2px dashed #004080; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8f9fa; flex-shrink: 0;">
+                                    <span id="logoPlaceholder" style="font-size: 20px;">🏢</span>
+                                    <img id="logoPreviewImg" src="" alt="Logo" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="file" id="logoUpload" accept="image/*" onchange="handleLogoUpload(event)" style="display: none;">
+                                    <button class="btn-secondary" onclick="document.getElementById('logoUpload').click()" style="width: 100%; padding: 6px 10px; font-size: 10px;">
+                                        📤 Upload Logo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Organization Name</label>
+                            <input type="text" class="form-input" id="orgName" oninput="updatePreview()">
+                        </div>
+                        
+                        <div class="section-header">
+                            <span class="section-icon">3</span>
+                            <span class="section-title">PERSONAL DETAILS</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-input" id="fullName" oninput="updatePreview()">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">ID Number</label>
+                                <input type="text" class="form-input" id="idNumber" oninput="updatePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Position/Title</label>
+                                <input type="text" class="form-input" id="position" oninput="updatePreview()">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Department</label>
+                                <input type="text" class="form-input" id="department" oninput="updatePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Valid Until</label>
+                                <input type="text" class="form-input" id="validUntil" oninput="updatePreview()">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Telephone</label>
+                                <input type="text" class="form-input" id="telephone" oninput="updatePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="text" class="form-input" id="email" oninput="updatePreview()">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-input" id="address" oninput="updatePreview()">
+                        </div>
+                        
+                        <div class="section-header">
+                            <span class="section-icon">4</span>
+                            <span class="section-title">STYLE</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Template</label>
+                            <div class="template-selector">
+                                <button class="template-btn active" onclick="setTemplate('corporate', event)">Corporate</button>
+                                <button class="template-btn" onclick="setTemplate('modern', event)">Modern</button>
+                                <button class="template-btn" onclick="setTemplate('elegant', event)">Elegant</button>
+                            </div>
+                            <div class="template-selector" style="margin-top: 6px;">
+                                <button class="template-btn" onclick="setTemplate('minimal', event)">Minimal</button>
+                                <button class="template-btn" onclick="setTemplate('gradient', event)">Gradient</button>
+                                <button class="template-btn" onclick="setTemplate('badge', event)">Badge</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Colors</label>
+                            <div class="color-row">
+                                <input type="color" class="color-picker" id="primaryColor" value="#004080" onchange="updatePreview()">
+                                <span style="font-size: 11px;">Primary</span>
+                                <input type="color" class="color-picker" id="secondaryColor" value="#ffc107" onchange="updatePreview()">
+                                <span style="font-size: 11px;">Secondary</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Panel - Preview -->
+                    <div class="preview-panel">
+                        <div class="preview-section">
+                            <div class="preview-title">📄 Live Preview</div>
+                            
+                            <div class="card-wrapper">
+                                <div class="id-card template-corporate" id="cardPreview" style="--primary-color: #004080; --secondary-color: #ffc107;">
+                                </div>
+                            </div>
+                            
+                            <div class="download-buttons">
+                                <button class="btn-gold" onclick="downloadCard('png')">📥 Download PNG</button>
+                                <button class="btn-secondary" onclick="downloadCard('jpeg')">📥 Download JPEG</button>
+                                <button class="btn-success" onclick="downloadCard('pdf')">📄 Download PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <p style="margin: 0; font-weight: 700;">Informatics Consultancy Firm-Sierra Leone (ICF-SL)</p>
+            <p>Driving Data-Driven Solutions for Health and Development</p>
+            <p style="font-size: 10px;">© 2025 Informatics Consultancy Firm-Sierra Leone (ICF-SL)</p>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div class="modal" id="cameraModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📷 Take Photo</div>
+                <button class="modal-close" onclick="closeCamera()">×</button>
+            </div>
+            <div class="camera-container">
+                <video id="cameraVideo" autoplay playsinline></video>
+                <canvas id="cameraCanvas"></canvas>
+            </div>
+            <div class="camera-buttons">
+                <button class="btn-gold" onclick="capturePhoto()">📸 Capture</button>
+                <button class="btn-secondary" onclick="closeCamera()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let currentTemplate = 'corporate';
+        let uploadedPhoto = null;
+        let uploadedLogo = null;
+        let cameraStream = null;
+
+        // Photo handling
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedPhoto = e.target.result;
+                displayPhoto();
+                updatePreview();
+                showNotification('Photo uploaded!', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayPhoto() {
+            const preview = document.getElementById('photoPreview');
+            if (uploadedPhoto) {
+                preview.innerHTML = `<img src="${uploadedPhoto}" alt="Photo">`;
+                preview.classList.add('has-photo');
+            } else {
+                preview.innerHTML = `
+                    <div class="photo-placeholder">
+                        <div class="photo-placeholder-icon">👤</div>
+                        <div class="photo-placeholder-text">No photo</div>
+                    </div>
+                `;
+                preview.classList.remove('has-photo');
+            }
+        }
+
+        function clearPhoto() {
+            uploadedPhoto = null;
+            displayPhoto();
+            updatePreview();
+            document.getElementById('photoUpload').value = '';
+        }
+
+        // Camera functions
+        async function openCamera() {
+            const modal = document.getElementById('cameraModal');
+            const video = document.getElementById('cameraVideo');
+            
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
+                });
+                video.srcObject = cameraStream;
+                modal.classList.add('active');
+            } catch (error) {
+                showNotification('Camera access denied or not available', 'error');
+                console.error(error);
+            }
+        }
+
+        function closeCamera() {
+            const modal = document.getElementById('cameraModal');
+            const video = document.getElementById('cameraVideo');
+            
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            video.srcObject = null;
+            modal.classList.remove('active');
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            uploadedPhoto = canvas.toDataURL('image/jpeg', 0.9);
+            displayPhoto();
+            updatePreview();
+            closeCamera();
+            showNotification('Photo captured!', 'success');
+        }
+
+        // Logo handling
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedLogo = e.target.result;
+                document.getElementById('logoPlaceholder').style.display = 'none';
+                const previewImg = document.getElementById('logoPreviewImg');
+                previewImg.src = uploadedLogo;
+                previewImg.style.display = 'block';
+                document.getElementById('logoPreviewBox').style.borderStyle = 'solid';
+                updatePreview();
+                showNotification('Logo uploaded!', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setTemplate(template, evt) {
+            currentTemplate = template;
+            document.querySelectorAll('.template-btn').forEach(btn => btn.classList.remove('active'));
+            if (evt && evt.target) evt.target.classList.add('active');
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const card = document.getElementById('cardPreview');
+            const primaryColor = document.getElementById('primaryColor').value;
+            const secondaryColor = document.getElementById('secondaryColor').value;
+            
+            card.style.setProperty('--primary-color', primaryColor);
+            card.style.setProperty('--secondary-color', secondaryColor);
+            card.className = `id-card template-${currentTemplate}`;
+            
+            const data = {
+                orgName: document.getElementById('orgName').value,
+                fullName: document.getElementById('fullName').value,
+                idNumber: document.getElementById('idNumber').value,
+                position: document.getElementById('position').value,
+                department: document.getElementById('department').value,
+                validUntil: document.getElementById('validUntil').value,
+                telephone: document.getElementById('telephone').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value
+            };
+            
+            const photoHtml = uploadedPhoto 
+                ? `<img src="${uploadedPhoto}" alt="Photo">` 
+                : '<div style="width:100%;height:100%;background:#e9ecef;display:flex;align-items:center;justify-content:center;color:#999;font-size:24px;">👤</div>';
+            
+            const logoHtml = uploadedLogo 
+                ? `<img src="${uploadedLogo}" alt="Logo">` 
+                : '';
+            
+            let html = '';
+            
+            if (currentTemplate === 'corporate') {
+                html = `
+                    <div class="card-header">
+                        <div class="card-logo">${logoHtml}</div>
+                        <div class="card-org">${data.orgName}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-photo">${photoHtml}</div>
+                        <div class="card-info">
+                            <div class="card-name">${data.fullName}</div>
+                            <div class="card-position">${data.position}</div>
+                            <div class="card-detail"><strong>Dept:</strong> ${data.department}</div>
+                            <div class="card-detail"><strong>Tel:</strong> ${data.telephone}</div>
+                            <div class="card-detail"><strong>Email:</strong> ${data.email}</div>
+                            <div class="card-detail"><strong>Address:</strong> ${data.address}</div>
+                            <div class="card-detail"><strong>Valid:</strong> ${data.validUntil}</div>
+                            <div class="card-id">ID: ${data.idNumber}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTemplate === 'modern') {
+                html = `
+                    <div class="card-accent"></div>
+                    <div class="card-content">
+                        <div class="card-left">
+                            <div class="card-photo">${photoHtml}</div>
+                            <div class="card-id">ID: ${data.idNumber}</div>
+                        </div>
+                        <div class="card-right">
+                            <div class="card-logo">${logoHtml}</div>
+                            <div class="card-name">${data.fullName}</div>
+                            <div class="card-position">${data.position}</div>
+                            <div class="card-detail">${data.department} • ${data.orgName}</div>
+                            <div class="card-detail">📞 ${data.telephone}</div>
+                            <div class="card-detail">✉ ${data.email}</div>
+                            <div class="card-detail">📍 ${data.address}</div>
+                            <div class="card-detail">Valid: ${data.validUntil}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTemplate === 'elegant') {
+                html = `
+                    <div class="card-border"></div>
+                    <div class="card-content">
+                        <div class="card-photo">${photoHtml}</div>
+                        <div class="card-right">
+                            <div class="card-header-row">
+                                <div class="card-logo">${logoHtml}</div>
+                                <div class="card-org">${data.orgName}</div>
+                            </div>
+                            <div class="card-name">${data.fullName}</div>
+                            <div class="card-position">${data.position}</div>
+                            <div class="card-detail">${data.department}</div>
+                            <div class="card-detail">📞 ${data.telephone} • ✉ ${data.email}</div>
+                            <div class="card-detail">📍 ${data.address}</div>
+                            <div class="card-detail">Valid: ${data.validUntil}</div>
+                            <div class="card-id">ID: ${data.idNumber}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTemplate === 'minimal') {
+                html = `
+                    <div class="card-stripe"></div>
+                    <div class="card-content">
+                        <div class="card-photo">${photoHtml}</div>
+                        <div class="card-right">
+                            <div class="card-logo">${logoHtml}</div>
+                            <div class="card-name">${data.fullName}</div>
+                            <div class="card-position">${data.position}</div>
+                            <div class="card-detail">${data.department} • ${data.orgName}</div>
+                            <div class="card-detail">📞 ${data.telephone}</div>
+                            <div class="card-detail">✉ ${data.email}</div>
+                            <div class="card-detail">📍 ${data.address}</div>
+                            <div class="card-detail">Valid: ${data.validUntil}</div>
+                            <div class="card-id">ID: ${data.idNumber}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTemplate === 'gradient') {
+                html = `
+                    <div class="card-content">
+                        <div class="card-photo">${photoHtml}</div>
+                        <div class="card-right">
+                            <div class="card-logo">${logoHtml}</div>
+                            <div class="card-name">${data.fullName}</div>
+                            <div class="card-position">${data.position}</div>
+                            <div class="card-detail">${data.department} • ${data.orgName}</div>
+                            <div class="card-detail">📞 ${data.telephone} • ✉ ${data.email}</div>
+                            <div class="card-detail">📍 ${data.address}</div>
+                            <div class="card-detail">Valid: ${data.validUntil}</div>
+                            <div class="card-id">ID: ${data.idNumber}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (currentTemplate === 'badge') {
+                html = `
+                    <div class="card-top">
+                        <div class="card-logo">${logoHtml}</div>
+                        <div class="card-photo-wrapper">
+                            <div class="card-photo">${photoHtml}</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-name">${data.fullName}</div>
+                        <div class="card-position">${data.position}</div>
+                        <div class="card-detail">${data.department} • ${data.orgName}</div>
+                        <div class="card-detail">📞 ${data.telephone} • ✉ ${data.email}</div>
+                        <div class="card-id">ID: ${data.idNumber}</div>
+                    </div>
+                `;
+            }
+            
+            card.innerHTML = html;
+        }
+
+        async function downloadCard(format) {
+            const card = document.getElementById('cardPreview');
+            
+            try {
+                showNotification('Generating...', 'success');
+                
+                const canvas = await html2canvas(card, {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+                
+                if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('l', 'mm', [100, 62.5]); // Scaled card size
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 100, 62.5);
+                    pdf.save(`id_card_${Date.now()}.pdf`);
+                } else {
+                    const link = document.createElement('a');
+                    link.download = `id_card_${Date.now()}.${format}`;
+                    link.href = canvas.toDataURL(`image/${format}`, 0.95);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+                
+                showNotification(`Downloaded as ${format.toUpperCase()}!`, 'success');
+            } catch (error) {
+                showNotification('Error generating image.', 'error');
+                console.error(error);
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            setTimeout(() => { notification.className = 'notification'; }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', updatePreview);
+    </script>
+</body>
+</html>
